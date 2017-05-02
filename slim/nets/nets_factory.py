@@ -1,4 +1,4 @@
-# Copyright 2016 The TensorFlow Authors. All Rights Reserved.
+# Copyright 2016 The TensorFlow Authors. All Righ2ts Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -29,6 +29,7 @@ from nets import overfeat
 from nets import resnet_v1
 from nets import resnet_v2
 from nets import vgg
+from nets import mobilenet
 
 slim = tf.contrib.slim
 
@@ -52,6 +53,7 @@ networks_map = {'alexnet_v2': alexnet.alexnet_v2,
                 'resnet_v2_101': resnet_v2.resnet_v2_101,
                 'resnet_v2_152': resnet_v2.resnet_v2_152,
                 'resnet_v2_200': resnet_v2.resnet_v2_200,
+                'mobilenet': mobilenet.mobilenet,
                }
 
 arg_scopes_map = {'alexnet_v2': alexnet.alexnet_v2_arg_scope,
@@ -75,6 +77,7 @@ arg_scopes_map = {'alexnet_v2': alexnet.alexnet_v2_arg_scope,
                   'resnet_v2_101': resnet_v2.resnet_arg_scope,
                   'resnet_v2_152': resnet_v2.resnet_arg_scope,
                   'resnet_v2_200': resnet_v2.resnet_arg_scope,
+                  'mobilenet': mobilenet.mobilenet_arg_scope,
                  }
 
 
