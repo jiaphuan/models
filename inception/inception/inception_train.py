@@ -317,8 +317,14 @@ def train(dataset):
         log_device_placement=FLAGS.log_device_placement))
     sess.run(init)
 
-    if FLAGS.pretrained_model_checkpoint_path:
-      assert tf.gfile.Exists(FLAGS.pretrained_model_checkpoint_path)
+    if tf.gfile.Exists(os.path.join(FLAGS.train_dir, 'checkpoint')):
+      variables_to_restore = tf.get_collection(
+          slim.variables.VARIABLES_TO_RESTORE)
+      restorer = tf.global_variables()
+      restorer.restore(sess, tf.train.latest_checkpoint(FLAGS.train_dir))
+      print('%s: Resume training from %s' %
+            (datetime.now(), tf.train.latest_checkpoint(FLAGS.train_dir)))
+    elif FLAGS.pretrained_model_checkpoint_path:
       variables_to_restore = tf.get_collection(
           slim.variables.VARIABLES_TO_RESTORE)
       restorer = tf.train.Saver(variables_to_restore)
@@ -333,7 +339,7 @@ def train(dataset):
         FLAGS.train_dir,
         graph=sess.graph)
 
-    for step in range(FLAGS.max_steps):
+    for step in range(tf.train.global_step(sess, global_step), FLAGS.max_steps):
       start_time = time.time()
       _, loss_value = sess.run([train_op, loss])
       duration = time.time() - start_time
