@@ -320,9 +320,8 @@ def train(dataset):
     sess.run(init)
 
     if tf.gfile.Exists(os.path.join(FLAGS.train_dir, 'checkpoint')):
-      variables_to_restore = tf.get_collection(
-          slim.variables.VARIABLES_TO_RESTORE)
-      restorer = tf.global_variables()
+      variables_to_restore = tf.global_variables()
+      restorer = tf.train.Saver(variables_to_restore)
       restorer.restore(sess, tf.train.latest_checkpoint(FLAGS.train_dir))
       print('%s: Resume training from %s' %
             (datetime.now(), tf.train.latest_checkpoint(FLAGS.train_dir)))
