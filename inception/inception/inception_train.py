@@ -187,7 +187,7 @@ def train(dataset):
     # number of batches processed * FLAGS.num_gpus.
     global_step = tf.get_variable(
         'global_step', [],
-        initializer=tf.constant_initializer(0), trainable=False)
+        initializer=tf.constant_initializer(-1), trainable=False)
 
     # Calculate the learning rate schedule.
     num_batches_per_epoch = (dataset.num_examples_per_epoch() /
@@ -340,7 +340,7 @@ def train(dataset):
         FLAGS.train_dir,
         graph=sess.graph)
 
-    for step in range(tf.train.global_step(sess, global_step), FLAGS.max_steps):
+    for step in range(tf.train.global_step(sess, global_step) + 1, FLAGS.max_steps):
       start_time = time.time()
       _, loss_value = sess.run([train_op, loss])
       duration = time.time() - start_time
