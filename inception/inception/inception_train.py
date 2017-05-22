@@ -40,6 +40,8 @@ tf.app.flags.DEFINE_integer('max_steps', 10000000,
                             """Number of batches to run.""")
 tf.app.flags.DEFINE_string('subset', 'train',
                            """Either 'train' or 'validation'.""")
+tf.app.flags.DEFINE_integer('checkpoint_steps', 5000,
+                            """Store checkpoint every n steps""")
 
 # Flags governing the hardware employed for running TensorFlow.
 tf.app.flags.DEFINE_integer('num_gpus', 1,
@@ -185,7 +187,7 @@ def train(dataset):
     # number of batches processed * FLAGS.num_gpus.
     global_step = tf.get_variable(
         'global_step', [],
-        initializer=tf.constant_initializer(0), trainable=False)
+        initializer=tf.constant_initializer(-1), trainable=False)
 
     # Calculate the learning rate schedule.
     num_batches_per_epoch = (dataset.num_examples_per_epoch() /
@@ -317,8 +319,13 @@ def train(dataset):
         log_device_placement=FLAGS.log_device_placement))
     sess.run(init)
 
-    if FLAGS.pretrained_model_checkpoint_path:
-      assert tf.gfile.Exists(FLAGS.pretrained_model_checkpoint_path)
+    if tf.gfile.Exists(os.path.join(FLAGS.train_dir, 'checkpoint')):
+      variables_to_restore = tf.global_variables()
+      restorer = tf.train.Saver(variables_to_restore)
+      restorer.restore(sess, tf.train.latest_checkpoint(FLAGS.train_dir))
+      print('%s: Resume training from %s' %
+            (datetime.now(), tf.train.latest_checkpoint(FLAGS.train_dir)))
+    elif FLAGS.pretrained_model_checkpoint_path:
       variables_to_restore = tf.get_collection(
           slim.variables.VARIABLES_TO_RESTORE)
       restorer = tf.train.Saver(variables_to_restore)
@@ -333,7 +340,7 @@ def train(dataset):
         FLAGS.train_dir,
         graph=sess.graph)
 
-    for step in range(FLAGS.max_steps):
+    for step in range(tf.train.global_step(sess, global_step) + 1, FLAGS.max_steps):
       start_time = time.time()
       _, loss_value = sess.run([train_op, loss])
       duration = time.time() - start_time
@@ -352,6 +359,6 @@ def train(dataset):
         summary_writer.add_summary(summary_str, step)
 
       # Save the model checkpoint periodically.
-      if step % 5000 == 0 or (step + 1) == FLAGS.max_steps:
+      if step % FLAGS.checkpoint_steps == 0 or (step + 1) == FLAGS.max_steps:
         checkpoint_path = os.path.join(FLAGS.train_dir, 'model.ckpt')
         saver.save(sess, checkpoint_path, global_step=step)
