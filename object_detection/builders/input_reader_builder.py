@@ -48,6 +48,7 @@ def build(input_reader_config):
                      'input_reader_pb2.InputReader.')
 
   if input_reader_config.WhichOneof('input_reader') == 'tf_record_input_reader':
+    print('build input', input_reader_config.shuffle, input_reader_config.num_epochs, input_reader_config.num_readers, input_reader_config.queue_capacity, input_reader_config.min_after_dequeue)
     config = input_reader_config.tf_record_input_reader
     _, string_tensor = parallel_reader.parallel_read(
         config.input_path,

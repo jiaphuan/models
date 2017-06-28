@@ -376,6 +376,7 @@ def run_checkpoint_once(tensor_dict,
   counters = {'skipped': 0, 'success': 0}
   other_metrics = None
   with tf.contrib.slim.queues.QueueRunners(sess):
+    print('queue running')
     try:
       for batch in range(int(num_batches)):
         if (batch + 1) % 100 == 0:
@@ -394,6 +395,8 @@ def run_checkpoint_once(tensor_dict,
         for key in result_dict:
           if key in valid_keys:
             result_lists[key].append(result_dict[key])
+        print(batch, '# success: %d', counters['success'], '# skipped: %d', counters['skipped'])
+        print(batch, result_dict['image_id'], result_dict['groundtruth_classes'])
       if metric_names_to_values is not None:
         other_metrics = sess.run(metric_names_to_values)
       logging.info('Running eval batches done.')
@@ -406,8 +409,9 @@ def run_checkpoint_once(tensor_dict,
         metrics.update(other_metrics)
       global_step = tf.train.global_step(sess, slim.get_global_step())
       write_metrics(metrics, global_step, summary_dir)
-      logging.info('# success: %d', counters['success'])
-      logging.info('# skipped: %d', counters['skipped'])
+    print('Summary')
+    logging.info('# success: %d', counters['success'])
+    logging.info('# skipped: %d', counters['skipped'])
   sess.close()
 
 
