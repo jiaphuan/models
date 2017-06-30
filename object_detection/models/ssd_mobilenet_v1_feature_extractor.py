@@ -91,6 +91,8 @@ class SSDMobileNetV1FeatureExtractor(ssd_meta_arch.SSDFeatureExtractor):
               min_depth=self._min_depth,
               depth_multiplier=self._depth_multiplier,
               scope=scope)
+          for key in image_features:
+              print('KEY: %s', key)
           feature_maps = feature_map_generators.multi_resolution_feature_maps(
               feature_map_layout=feature_map_layout,
               depth_multiplier=self._depth_multiplier,

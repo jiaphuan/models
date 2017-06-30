@@ -125,6 +125,7 @@ def get_variables_available_in_checkpoint(variables, checkpoint_path):
   for variable_name, variable in sorted(variable_names_map.iteritems()):
     if variable_name in ckpt_vars:
       vars_in_ckpt[variable_name] = variable
+      logging.warning('Variable [%s] is restored', variable_name)
     else:
       logging.warning('Variable [%s] not available in checkpoint',
                       variable_name)
