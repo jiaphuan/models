@@ -20,6 +20,8 @@ DetectionModel.
 """
 import logging
 import tensorflow as tf
+from tensorflow.python.client import timeline
+import time
 
 from object_detection import eval_util
 from object_detection.core import box_list
@@ -157,7 +159,17 @@ def evaluate(create_input_dict_fn, create_model_fn, eval_config, categories,
         tensor_dict = {k: v for (k, v) in tensor_dict.items()
                        if k != 'original_image'}
     try:
-      (result_dict, _) = sess.run([tensor_dict, update_op])
+      run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+      run_metadata = tf.RunMetadata()
+      start = time.time()
+      (result_dict, _) = sess.run([tensor_dict, update_op], options=run_options, run_metadata=run_metadata)
+      dur = time.time() - start
+      print('forwarding time for %d : %f' % (batch_index, dur))
+      tl = timeline.Timeline(run_metadata.step_stats)
+      ctf = tl.generate_chrome_trace_format()
+      with open('./perf/timeline_%010d.json' % (batch_index), 'w') as f:
+        f.write(ctf)
+        #print('perf %d saved' % (batch_index))
       counters['success'] += 1
     except tf.errors.InvalidArgumentError:
       logging.info('Skipping image')
