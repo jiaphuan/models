@@ -359,14 +359,26 @@ def run_checkpoint_once(tensor_dict,
   sess = tf.Session(master, graph=tf.get_default_graph())
   sess.run(tf.global_variables_initializer())
   sess.run(tf.local_variables_initializer())
+  print('[INFO] in once')
   if restore_fn:
     restore_fn(sess)
+    print('[INFO] in restore function')
+
+    saver = tf.train.Saver()
+    saver.save(sess, summary_dir + '/model')
+    tf.train.write_graph(sess.graph_def, summary_dir, 'graph.pbtxt')
+    print('[INFO] new checkpoint saved')
   else:
     if not checkpoint_dirs:
       raise ValueError('`checkpoint_dirs` must have at least one entry.')
     checkpoint_file = tf.train.latest_checkpoint(checkpoint_dirs[0])
     saver = tf.train.Saver(variables_to_restore)
     saver.restore(sess, checkpoint_file)
+
+    saver.save(sess, summary_dir + '/model')
+    tf.train.write_graph(sess.graph_def, summary_dir, 'graph.pbtxt')
+    print('[INFO] new checkpoint saved')
+
 
   if save_graph:
     tf.train.write_graph(sess.graph_def, save_graph_dir, 'eval.pbtxt')

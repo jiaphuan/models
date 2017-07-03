@@ -8,6 +8,7 @@ message ImageResizer {
   oneof image_resizer_oneof {
     KeepAspectRatioResizer keep_aspect_ratio_resizer = 1;
     FixedShapeResizer fixed_shape_resizer = 2;
+    DummyResizer dummy_resizer = 3;
   }
 }
 
@@ -29,4 +30,8 @@ message FixedShapeResizer {
 
   // Desired width of image in pixels.
   optional int32 width = 2 [default = 300];
+}
+
+// Does not resize
+message DummyResizer {
 }

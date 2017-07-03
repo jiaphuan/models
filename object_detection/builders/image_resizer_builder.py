@@ -59,4 +59,9 @@ def build(image_resizer_config):
     return functools.partial(preprocessor.resize_image,
                              new_height=fixed_shape_resizer_config.height,
                              new_width=fixed_shape_resizer_config.width)
+  if image_resizer_config.WhichOneof(
+      'image_resizer_oneof') == 'dummy_resizer':
+      def dummy_resize_image(image):
+          return image
+      return dummy_resize_image
   raise ValueError('Invalid image resizer option.')
