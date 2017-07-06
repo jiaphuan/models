@@ -1902,7 +1902,13 @@ def preprocess(tensor_dict, preprocess_options, func_arg_map=None):
     def get_arg(key):
       return tensor_dict[key] if key is not None else None
     args = [get_arg(a) for a in arg_names]
+    print('PREPROCESSING', option)
     results = func(*args, **params)
+    if not isinstance(results, (list, tuple)):
+        name = results.name
+        results = tf.Print(results, [tf.reduce_max(results[:,:,0])], 'reduce_max r(%s)=' % (name), summarize=1, first_n=1)
+        results = tf.Print(results, [tf.reduce_max(results[:,:,1])], 'reduce_max g(%s)=' % (name), summarize=1, first_n=1)
+        results = tf.Print(results, [tf.reduce_max(results[:,:,2])], 'reduce_max b(%s)=' % (name), summarize=1, first_n=1)
     if not isinstance(results, (list, tuple)):
       results = (results,)
     # Removes None args since the return values will not contain those.
