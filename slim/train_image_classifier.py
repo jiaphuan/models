@@ -138,6 +138,10 @@ tf.app.flags.DEFINE_float(
 tf.app.flags.DEFINE_float(
     'label_smoothing', 0.0, 'The amount of label smoothing.')
 
+tf.app.flags.DEFINE_string(
+    'loss_type', 'one_hot_softmax',
+    'What type of loss is used for training: one_hot_softmax, softmax, sigmoid ')
+
 tf.app.flags.DEFINE_float(
     'learning_rate_decay_factor', 0.94, 'Learning rate decay factor.')
 
@@ -440,15 +444,16 @@ def main(_):
           batch_size=FLAGS.batch_size,
           num_threads=FLAGS.num_preprocessing_threads,
           capacity=5 * FLAGS.batch_size)
-      labels = slim.one_hot_encoding(
-          labels, dataset.num_classes - FLAGS.labels_offset)
+      if tf.size(labels) == FLAGS.batch_size:
+          labels = slim.one_hot_encoding(
+              labels, dataset.num_classes - FLAGS.labels_offset)
       batch_queue = slim.prefetch_queue.prefetch_queue(
           [images, labels], capacity=2 * deploy_config.num_clones)
 
     ####################
     # Define the model #
     ####################
-    def clone_fn(batch_queue):
+    def clone_fn(batch_queue, loss_type):
       """Allows data parallelism by creating multiple clones of network_fn."""
       with tf.device(deploy_config.inputs_device()):
         images, labels = batch_queue.dequeue()
@@ -458,18 +463,30 @@ def main(_):
       # Specify the loss function #
       #############################
       if 'AuxLogits' in end_points:
+        if loss_type is None or loss_type == 'one_hot_softmax' or loss_type == 'softmax':
+          tf.losses.softmax_cross_entropy(
+              logits=end_points['AuxLogits'], onehot_labels=labels,
+              label_smoothing=FLAGS.label_smoothing, weights=0.4, scope='aux_loss')
+        elif loss_type == 'sigmoid':
+          tf.losses.sigmoid_cross_entropy(
+              logits=end_points['AuxLogits'], multi_class_labels=labels,
+              label_smoothing=FLAGS.label_smoothing, weights=0.4, scope='aux_loss')
+        else:
+          assert False, 'Unknown loss type: %s' % (loss_type)
+      if loss_type is None or loss_type == 'one_hot_softmax' or loss_type == 'softmax':
         tf.losses.softmax_cross_entropy(
-            logits=end_points['AuxLogits'], onehot_labels=labels,
-            label_smoothing=FLAGS.label_smoothing, weights=0.4, scope='aux_loss')
-      tf.losses.softmax_cross_entropy(
-          logits=logits, onehot_labels=labels,
-          label_smoothing=FLAGS.label_smoothing, weights=1.0)
+            logits=logits, onehot_labels=labels,
+            label_smoothing=FLAGS.label_smoothing, weights=1.0)
+      elif loss_type == 'sigmoid':
+        tf.losses.sigmoid_cross_entropy(
+            logits=logits, multi_class_labels=labels,
+            label_smoothing=FLAGS.label_smoothing, weights=1.0)
       return end_points
 
     # Gather initial summaries.
     summaries = set(tf.get_collection(tf.GraphKeys.SUMMARIES))
 
-    clones = model_deploy.create_clones(deploy_config, clone_fn, [batch_queue])
+    clones = model_deploy.create_clones(deploy_config, clone_fn, [batch_queue, FLAGS.loss_type])
     first_clone_scope = deploy_config.clone_scope(0)
     # Gather update_ops from the first clone. These contain, for example,
     # the updates for the batch_norm variables created by network_fn.
