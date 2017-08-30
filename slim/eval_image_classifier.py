@@ -68,6 +68,13 @@ tf.app.flags.DEFINE_string(
     'model_name', 'inception_v3', 'The name of the architecture to evaluate.')
 
 tf.app.flags.DEFINE_string(
+    'metric_type', 'one_hot_accuracy', 'one_hot_accuracy, precision_with_thresh')
+
+tf.app.flags.DEFINE_string(
+    'thresh_list', '0.5',
+    'Comma seperated thresh list')
+
+tf.app.flags.DEFINE_string(
     'preprocessing_name', None, 'The name of the preprocessing to use. If left '
     'as `None`, then the model_name flag is used.')
 
@@ -126,6 +133,12 @@ def main(_):
     eval_image_size = FLAGS.eval_image_size or network_fn.default_image_size
 
     image = image_preprocessing_fn(image, eval_image_size, eval_image_size)
+    if FLAGS.metric_type == 'one_hot_accuracy':
+      label -= FLAGS.labels_offset
+      label = slim.one_hot_encoding(
+          label, dataset.num_classes - FLAGS.labels_offset)
+    else:
+      label = tf.reshape(label, [dataset.num_classes - FLAGS.labels_offset])
 
     images, labels = tf.train.batch(
         [image, label],
@@ -147,15 +160,32 @@ def main(_):
     else:
       variables_to_restore = slim.get_variables_to_restore()
 
-    predictions = tf.argmax(logits, 1)
-    labels = tf.squeeze(labels)
-
-    # Define the metrics:
-    names_to_values, names_to_updates = slim.metrics.aggregate_metric_map({
-        'Accuracy': slim.metrics.streaming_accuracy(predictions, labels),
-        'Recall_5': slim.metrics.streaming_recall_at_k(
-            logits, labels, 5),
-    })
+    if FLAGS.metric_type == 'one_hot_accuracy':
+      predictions = tf.argmax(logits, 1)
+      labels = tf.squeeze(labels)
+  
+      # Define the metrics:
+      names_to_values, names_to_updates = slim.metrics.aggregate_metric_map({
+          'Accuracy': slim.metrics.streaming_accuracy(predictions, labels),
+          'Recall_5': slim.metrics.streaming_recall_at_k(
+              logits, labels, 5),
+      })
+    elif FLAGS.metric_type == 'precision_with_thresh':
+      predictions = tf.nn.softmax(logits)
+      labels = tf.squeeze(labels)
+  
+      # Define the metrics:
+      thresh_list = [float(t) for t in FLAGS.thresh_list.split(',')]
+      names_to_values = dict()
+      names_to_updates = dict()
+      for thresh in thresh_list:
+          v, u = slim.metrics.streaming_precision_at_thresholds(predictions, labels, [thresh])
+          names_to_values['Precision_%0.4f' % (thresh)] = v[0]
+          names_to_updates['Precision_%0.4f' % (thresh)] = u[0]
+      for thresh in thresh_list:
+          v, u = slim.metrics.streaming_recall_at_thresholds(predictions, labels, [thresh])
+          names_to_values['Recall_%0.4f' % (thresh)] = v[0]
+          names_to_updates['Recall_%0.4f' % (thresh)] = u[0]
 
     # Print the summaries to screen.
     for name, value in names_to_values.items():
