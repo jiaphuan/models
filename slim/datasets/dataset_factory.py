@@ -23,13 +23,17 @@ from datasets import flowers
 from datasets import imagenet
 from datasets import mnist
 from datasets import flickr5615
+from datasets import imagenet1588
+from datasets import coco683
 
 datasets_map = {
     'cifar10': cifar10,
     'flowers': flowers,
     'imagenet': imagenet,
     'mnist': mnist,
-    'flickr5615': flickr5615
+    'flickr5615': flickr5615,
+    'imagenet1588': imagenet1588,
+    'coco683': coco683
 }
 
 
