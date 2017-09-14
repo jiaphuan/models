@@ -27,7 +27,7 @@ As described in https://arxiv.org/abs/1704.04861.
 
 100% Mobilenet V1 (base) with input size 224x224:
 
-See mobilenet_v1()
+See narrow_net_dx2()
 
 Layer                                                     params           macs
 --------------------------------------------------------------------------------
@@ -64,7 +64,7 @@ Total:                                                 3,185,088     567,716,352
 
 75% Mobilenet V1 (base) with input size 128x128:
 
-See mobilenet_v1_075()
+See narrow_net_b1_075()
 
 Layer                                                     params           macs
 --------------------------------------------------------------------------------
@@ -122,25 +122,36 @@ DepthSepConv = namedtuple('DepthSepConv', ['kernel', 'stride', 'depth'])
 
 # _CONV_DEFS specifies the MobileNet body
 _CONV_DEFS = [
-    Conv(kernel=[3, 3], stride=2, depth=32),
-    DepthSepConv(kernel=[3, 3], stride=1, depth=64),
-    DepthSepConv(kernel=[3, 3], stride=2, depth=128),
-    DepthSepConv(kernel=[3, 3], stride=1, depth=128),
-    DepthSepConv(kernel=[3, 3], stride=2, depth=256),
-    DepthSepConv(kernel=[3, 3], stride=1, depth=256),
-    DepthSepConv(kernel=[3, 3], stride=2, depth=512),
-    DepthSepConv(kernel=[3, 3], stride=1, depth=512),
-    DepthSepConv(kernel=[3, 3], stride=1, depth=512),
-    DepthSepConv(kernel=[3, 3], stride=1, depth=512),
-    DepthSepConv(kernel=[3, 3], stride=1, depth=512),
-    DepthSepConv(kernel=[3, 3], stride=1, depth=512),
-    DepthSepConv(kernel=[3, 3], stride=2, depth=1024),
+    Conv(kernel=[3, 3], stride=2, depth=32),            # 112
+    DepthSepConv(kernel=[3, 3], stride=1, depth=64),    # 
+    DepthSepConv(kernel=[3, 3], stride=1, depth=96),    # 
+    DepthSepConv(kernel=[3, 3], stride=2, depth=128),   # 56
+    DepthSepConv(kernel=[3, 3], stride=1, depth=128),   # 
+    DepthSepConv(kernel=[3, 3], stride=1, depth=192),   # 
+    DepthSepConv(kernel=[3, 3], stride=1, depth=192),   # 
+    DepthSepConv(kernel=[3, 3], stride=2, depth=256),   # 28
+    DepthSepConv(kernel=[3, 3], stride=1, depth=256),   # 
+    DepthSepConv(kernel=[3, 3], stride=1, depth=384),   # 
+    DepthSepConv(kernel=[3, 3], stride=1, depth=384),   # 
+    DepthSepConv(kernel=[3, 3], stride=2, depth=512),   # 14
+    DepthSepConv(kernel=[3, 3], stride=1, depth=512),   # 
+    DepthSepConv(kernel=[3, 3], stride=1, depth=512),   # 
+    DepthSepConv(kernel=[3, 3], stride=1, depth=512),   # 
+    DepthSepConv(kernel=[3, 3], stride=1, depth=512),   # 
+    DepthSepConv(kernel=[3, 3], stride=1, depth=512),   # 
+    DepthSepConv(kernel=[3, 3], stride=1, depth=768),   # 
+    DepthSepConv(kernel=[3, 3], stride=1, depth=768),   # 
+    DepthSepConv(kernel=[3, 3], stride=1, depth=768),   # 
+    DepthSepConv(kernel=[3, 3], stride=1, depth=768),   # 
+    DepthSepConv(kernel=[3, 3], stride=1, depth=768),   # 
+    DepthSepConv(kernel=[3, 3], stride=1, depth=768),   # 
+    DepthSepConv(kernel=[3, 3], stride=2, depth=1024),  # 7
     DepthSepConv(kernel=[3, 3], stride=1, depth=1024)
 ]
 
 
-def mobilenet_v1_base(inputs,
-                      final_endpoint='Conv2d_13_pointwise',
+def narrow_net_dx2_base(inputs,
+                      final_endpoint='',
                       min_depth=8,
                       depth_multiplier=1.0,
                       conv_defs=None,
@@ -196,7 +207,7 @@ def mobilenet_v1_base(inputs,
   if output_stride is not None and output_stride not in [8, 16, 32]:
     raise ValueError('Only allowed output_stride values are 8, 16, 32.')
 
-  with tf.variable_scope(scope, 'MobilenetV1', [inputs]):
+  with tf.variable_scope(scope, 'NarrowNetB1', [inputs]):
     with slim.arg_scope([slim.conv2d, slim.separable_conv2d], padding='SAME'):
       # The current_stride variable keeps track of the output stride of the
       # activations, i.e., the running product of convolution strides up to the
@@ -266,7 +277,7 @@ def mobilenet_v1_base(inputs,
   raise ValueError('Unknown final endpoint %s' % final_endpoint)
 
 
-def mobilenet_v1(inputs,
+def narrow_net_dx2(inputs,
                  num_classes=1000,
                  dropout_keep_prob=0.999,
                  is_training=True,
@@ -276,7 +287,7 @@ def mobilenet_v1(inputs,
                  prediction_fn=tf.contrib.layers.softmax,
                  spatial_squeeze=True,
                  reuse=None,
-                 scope='MobilenetV1'):
+                 scope='NarrowNetB1'):
   """Mobilenet v1 model for classification.
 
   Args:
@@ -313,11 +324,11 @@ def mobilenet_v1(inputs,
     raise ValueError('Invalid input tensor rank, expected 4, was: %d' %
                      len(input_shape))
 
-  with tf.variable_scope(scope, 'MobilenetV1', [inputs, num_classes],
+  with tf.variable_scope(scope, 'NarrowNetB1', [inputs, num_classes],
                          reuse=reuse) as scope:
     with slim.arg_scope([slim.batch_norm, slim.dropout],
                         is_training=is_training):
-      net, end_points = mobilenet_v1_base(inputs, scope=scope,
+      net, end_points = narrow_net_dx2_base(inputs, scope=scope,
                                           min_depth=min_depth,
                                           depth_multiplier=depth_multiplier,
                                           conv_defs=conv_defs)
@@ -337,7 +348,7 @@ def mobilenet_v1(inputs,
         end_points['Predictions'] = prediction_fn(logits, scope='Predictions')
   return logits, end_points
 
-mobilenet_v1.default_image_size = 224
+narrow_net_dx2.default_image_size = 224
 
 
 def wrapped_partial(func, *args, **kwargs):
@@ -346,9 +357,9 @@ def wrapped_partial(func, *args, **kwargs):
   return partial_func
 
 
-mobilenet_v1_075 = wrapped_partial(mobilenet_v1, depth_multiplier=0.75)
-mobilenet_v1_050 = wrapped_partial(mobilenet_v1, depth_multiplier=0.50)
-mobilenet_v1_025 = wrapped_partial(mobilenet_v1, depth_multiplier=0.25)
+narrow_net_dx2_075 = wrapped_partial(narrow_net_dx2, depth_multiplier=0.75)
+narrow_net_dx2_050 = wrapped_partial(narrow_net_dx2, depth_multiplier=0.50)
+narrow_net_dx2_025 = wrapped_partial(narrow_net_dx2, depth_multiplier=0.25)
 
 
 def _reduced_kernel_size_for_small_input(input_tensor, kernel_size):
@@ -373,7 +384,7 @@ def _reduced_kernel_size_for_small_input(input_tensor, kernel_size):
   return kernel_size_out
 
 
-def mobilenet_v1_arg_scope(is_training=True,
+def narrow_net_dx2_arg_scope(is_training=True,
                            weight_decay=0.00004,
                            stddev=0.09,
                            regularize_depthwise=False):
