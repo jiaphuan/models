@@ -151,7 +151,7 @@ _CONV_DEFS = [
 
 
 def narrow_net_dx2_base(inputs,
-                      final_endpoint='',
+                      final_endpoint='Conv2d_24_pointwise',
                       min_depth=8,
                       depth_multiplier=1.0,
                       conv_defs=None,
