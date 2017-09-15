@@ -90,3 +90,9 @@ ENV/
 
 # PyCharm
 .idea/
+
+# vim
+*~
+*.swp
+*.swo
+*.un~
