@@ -398,6 +398,9 @@ def main(_):
     raise ValueError('You must supply the dataset directory with --dataset_dir')
   
   # config distributed training
+  #   Sample env config:
+  #      TF_CONFIG="{'cluster': {'master':[ip0], 'worker':[ip1,ip2,ip3], 'ps':[ip1,ip2]}, 'task_info': {'type': 'ps', 'index': '1'}}"
+  # TODO: change environment variable TF_CONFIG to flags
   env = json.loads(os.environ.get('TF_CONFIG', '{}'))
   cluster_data = env.get('cluster', None)
   cluster = tf.train.ClusterSpec(cluster_data) if cluster_data else None
